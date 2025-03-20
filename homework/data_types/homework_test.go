@@ -23,9 +23,9 @@ func ToLittleEndian[T Integer](number T) T {
 	size := int(unsafe.Sizeof(number))
 
 	for i := 0; i < size; i++ {
-		currentByte := byte(number >> (8 * i) & 0xFF)
+		currentByte := number >> (8 * i) & 0xFF
 		shift := 8 * (size - i - 1)
-		result |= T(currentByte) << shift
+		result |= currentByte << shift
 	}
 
 	return result
