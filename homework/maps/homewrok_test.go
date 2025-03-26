@@ -51,8 +51,6 @@ type OrderedMap[K comparable, V any] struct {
 
 func NewOrderedMap[K comparable, V any](less func(a, b K) bool) OrderedMap[K, V] {
 	return OrderedMap[K, V]{
-		root: nil,
-		size: 0,
 		less: less,
 	}
 }
@@ -82,29 +80,17 @@ func (m *OrderedMap[K, V]) Insert(key K, value V) {
 }
 
 func (m *OrderedMap[K, V]) Erase(key K) {
-	if m == nil || m.root == nil {
-		return
-	}
-
 	m.root = m.removeNode(m.root, key)
 	m.size--
 }
 
 func (m *OrderedMap[K, V]) Contains(key K) bool {
-	if m == nil {
-		return false
-	}
-
 	_, ok := m.findNode(key)
 
 	return ok
 }
 
 func (m *OrderedMap[K, V]) Size() int {
-	if m == nil || m.root == nil {
-		return 0
-	}
-
 	return m.size
 }
 
@@ -144,8 +130,6 @@ func (m *OrderedMap[K, V]) insertNode(node *GenericNode[K, V], key K, value V) *
 		return &GenericNode[K, V]{
 			Key:   key,
 			Value: value,
-			Left:  nil,
-			Right: nil,
 		}
 	}
 
