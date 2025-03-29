@@ -26,7 +26,7 @@ func Filter[T any](data []T, action func(T) bool) []T {
 		return data
 	}
 
-	result := make([]T, 0)
+	var result []T
 	for _, item := range data {
 		if action(item) {
 			result = append(result, item)
