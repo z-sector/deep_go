@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,21 +19,52 @@ type MessageService struct {
 }
 
 type Container struct {
-	// need to implement
+	constructors map[string]func() any
+	singletons   map[string]func() any
+	instances    map[string]any
 }
 
 func NewContainer() *Container {
-	// need to implement
-	return &Container{}
+	return &Container{
+		constructors: make(map[string]func() any),
+		singletons:   make(map[string]func() any),
+		instances:    make(map[string]any),
+	}
 }
 
-func (c *Container) RegisterType(name string, constructor interface{}) {
-	// need to implement
+func (c *Container) RegisterType(name string, constructor any) {
+	f, ok := constructor.(func() any)
+	if !ok {
+		panic(fmt.Sprintf("invalid constructor for %s: must be a function", name))
+	}
+	c.constructors[name] = f
 }
 
-func (c *Container) Resolve(name string) (interface{}, error) {
-	// need to implement
-	return nil, nil
+func (c *Container) RegisterSingletonType(name string, constructor any) {
+	f, ok := constructor.(func() any)
+	if !ok {
+		panic(fmt.Sprintf("invalid constructor for %s: must be a function", name))
+	}
+	c.singletons[name] = f
+}
+
+func (c *Container) Resolve(name string) (any, error) {
+	if constructor, ok := c.singletons[name]; ok {
+		if instance, ok := c.instances[name]; ok {
+			return instance, nil
+		}
+
+		instance := constructor()
+		c.instances[name] = instance
+		return instance, nil
+	}
+
+	if constructor, ok := c.constructors[name]; ok {
+		instance := constructor()
+		return instance, nil
+	}
+
+	return nil, fmt.Errorf("type %s not registered", name)
 }
 
 func TestDIContainer(t *testing.T) {
