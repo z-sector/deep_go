@@ -64,23 +64,26 @@ func Append(err error, errs ...error) *MultiError {
 		return nil
 	}
 
-	me := &MultiError{}
-	if err != nil {
-		var multiErr *MultiError
-		if errors.As(err, &multiErr) {
-			me = multiErr
-		} else {
-			me = &MultiError{errs: []error{err}}
-		}
+	if err == nil {
+		return appendInMultiErr(&MultiError{}, errs...)
 	}
 
+	var multiErr *MultiError
+	if errors.As(err, &multiErr) {
+		return appendInMultiErr(multiErr, errs...)
+	}
+
+	multiErr = &MultiError{errs: []error{err}}
+	return appendInMultiErr(multiErr, errs...)
+}
+
+func appendInMultiErr(err *MultiError, errs ...error) *MultiError {
 	for _, e := range errs {
 		if e != nil {
-			me.errs = append(me.errs, e)
+			err.errs = append(err.errs, e)
 		}
 	}
-
-	return me
+	return err
 }
 
 func TestMultiError(t *testing.T) {
