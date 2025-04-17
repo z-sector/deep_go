@@ -9,7 +9,7 @@ import (
 
 // go test -v homework_test.go
 
-func dfs(ptr uintptr, visited map[uintptr]struct{}, result *[]uintptr) {
+func dfs(ptr uintptr, visited map[uintptr]struct{}) {
 	if ptr == 0 {
 		return
 	}
@@ -19,26 +19,32 @@ func dfs(ptr uintptr, visited map[uintptr]struct{}, result *[]uintptr) {
 	}
 
 	visited[ptr] = struct{}{}
-	*result = append(*result, ptr)
 
 	value := *(*uintptr)(unsafe.Pointer(ptr))
 
 	if value != 0 {
-		dfs(value, visited, result)
+		dfs(value, visited)
 	}
 }
 
 func Trace(stacks [][]uintptr) []uintptr {
 	visited := make(map[uintptr]struct{})
-	var result []uintptr
 
 	for _, stack := range stacks {
 		for _, ptr := range stack {
 			if ptr != 0 {
-				dfs(ptr, visited, &result)
+				dfs(ptr, visited)
 			}
 		}
 	}
+
+	result := make([]uintptr, len(visited))
+	i := 0
+	for ptr := range visited {
+		result[i] = ptr
+		i++
+	}
+
 	return result
 }
 
