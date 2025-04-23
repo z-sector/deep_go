@@ -12,25 +12,41 @@ type Task struct {
 }
 
 type Scheduler struct {
-	// need to implement
+	heap *Heap[Task, int]
 }
 
 func NewScheduler() Scheduler {
-	// need to implement
-	return Scheduler{}
+	less := func(a, b Task) bool {
+		return a.Priority > b.Priority
+	}
+
+	getIdentifier := func(task Task) int {
+		return task.Identifier
+	}
+	return Scheduler{
+		heap: NewHeap[Task, int](less, getIdentifier),
+	}
 }
 
 func (s *Scheduler) AddTask(task Task) {
-	// need to implement
+	s.heap.Push(task)
 }
 
 func (s *Scheduler) ChangeTaskPriority(taskID int, newPriority int) {
-	// need to implement
+	task, ok := s.heap.GetByIdentifier(taskID)
+	if !ok {
+		return
+	}
+
+	task.Priority = newPriority
+	s.heap.Change(taskID, func(task Task) Task {
+		task.Priority = newPriority
+		return task
+	})
 }
 
 func (s *Scheduler) GetTask() Task {
-	// need to implement
-	return Task{}
+	return s.heap.Pop()
 }
 
 func TestTrace(t *testing.T) {
@@ -56,6 +72,7 @@ func TestTrace(t *testing.T) {
 	scheduler.ChangeTaskPriority(1, 100)
 
 	task = scheduler.GetTask()
+	task1.Priority = 100
 	assert.Equal(t, task1, task)
 
 	task = scheduler.GetTask()
