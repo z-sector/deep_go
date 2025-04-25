@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,28 +10,66 @@ import (
 )
 
 type RWMutex struct {
-	// need to implement
+	mutex     *sync.Mutex
+	cond      *sync.Cond
+	readers   int
+	writer    bool
+	writeWait int
+}
+
+func NewRWMutex() *RWMutex {
+	mutex := &sync.Mutex{}
+	return &RWMutex{
+		mutex: mutex,
+		cond:  sync.NewCond(mutex),
+	}
 }
 
 func (m *RWMutex) Lock() {
-	// need to implement
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	m.writeWait++
+
+	for m.readers > 0 || m.writer {
+		m.cond.Wait()
+	}
+
+	m.writeWait--
+	m.writer = true
 }
 
 func (m *RWMutex) Unlock() {
-	// need to implement
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	m.writer = false
+	m.cond.Broadcast()
 }
 
 func (m *RWMutex) RLock() {
-	// need to implement
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
+	for m.writer || m.writeWait > 0 {
+		m.cond.Wait()
+	}
+
+	m.readers++
 }
 
 func (m *RWMutex) RUnlock() {
-	// need to implement
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	m.readers--
+	if m.readers == 0 {
+		m.cond.Broadcast()
+	}
 }
 
 func TestRWMutexWithWriter(t *testing.T) {
-	var mutex RWMutex
+	mutex := NewRWMutex()
 	mutex.Lock() // writer
 
 	var mutualExlusionWithWriter atomic.Bool
@@ -54,7 +93,7 @@ func TestRWMutexWithWriter(t *testing.T) {
 }
 
 func TestRWMutexWithReaders(t *testing.T) {
-	var mutex RWMutex
+	mutex := NewRWMutex()
 	mutex.RLock() // reader
 
 	var mutualExlusionWithWriter atomic.Bool
@@ -70,7 +109,7 @@ func TestRWMutexWithReaders(t *testing.T) {
 }
 
 func TestRWMutexMultipleReaders(t *testing.T) {
-	var mutex RWMutex
+	mutex := NewRWMutex()
 	mutex.RLock() // reader
 
 	var readersCount atomic.Int32
@@ -91,7 +130,7 @@ func TestRWMutexMultipleReaders(t *testing.T) {
 }
 
 func TestRWMutexWithWriterPriority(t *testing.T) {
-	var mutex RWMutex
+	mutex := NewRWMutex()
 	mutex.RLock() // reader
 
 	var mutualExlusionWithWriter atomic.Bool
