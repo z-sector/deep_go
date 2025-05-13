@@ -13,9 +13,11 @@ import (
 // go test -v homework_test.go
 
 type WorkerPool struct {
-	tasks chan func()
-	wg    sync.WaitGroup
-	once  sync.Once
+	tasks  chan func()
+	wg     sync.WaitGroup
+	once   sync.Once
+	mu     sync.RWMutex
+	closed bool
 }
 
 func NewWorkerPool(workersNumber int) *WorkerPool {
@@ -37,6 +39,12 @@ func (wp *WorkerPool) AddTask(task func()) error {
 		return nil
 	}
 
+	wp.mu.RLock()
+	defer wp.mu.RUnlock()
+	if wp.closed {
+		return errors.New("worker pool is closed")
+	}
+
 	select {
 	case wp.tasks <- task:
 		return nil
@@ -49,7 +57,11 @@ func (wp *WorkerPool) AddTask(task func()) error {
 // tasks in the pool to complete
 func (wp *WorkerPool) Shutdown() {
 	wp.once.Do(func() {
+		wp.mu.Lock()
+		wp.closed = true
 		close(wp.tasks)
+		wp.mu.Unlock()
+
 		wp.wg.Wait()
 	})
 }
@@ -85,4 +97,12 @@ func TestWorkerPool(t *testing.T) {
 	pool.Shutdown() // wait tasks
 
 	assert.Equal(t, int32(6), counter.Load())
+}
+
+func TestAddTaskAfterShutdown(t *testing.T) {
+	pool := NewWorkerPool(2)
+	pool.Shutdown()
+
+	err := pool.AddTask(func() {})
+	assert.Error(t, err)
 }
