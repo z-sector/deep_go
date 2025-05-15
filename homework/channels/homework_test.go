@@ -56,14 +56,16 @@ func (wp *WorkerPool) AddTask(task func()) error {
 // Shutdown all workers and wait for all
 // tasks in the pool to complete
 func (wp *WorkerPool) Shutdown() {
-	wp.once.Do(func() {
-		wp.mu.Lock()
-		wp.closed = true
-		close(wp.tasks)
+	wp.mu.Lock()
+	if wp.closed {
 		wp.mu.Unlock()
+		return
+	}
+	wp.closed = true
+	close(wp.tasks)
+	wp.mu.Unlock()
 
-		wp.wg.Wait()
-	})
+	wp.wg.Wait()
 }
 
 func (wp *WorkerPool) worker() {
